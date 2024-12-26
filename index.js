@@ -15,16 +15,27 @@ app.get("/valorant/rank", async (req, res) => {
 
     try {
         // API para consultar datos de rango y PL (ejemplo ficticio, actualízalo con una real)
-        const response = await axios.get(
-            `https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0`,
-        );
+        const valorantApiUrl =
+            "https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0";
+
+        // Consulta a la API
+        const response = await axios.get(valorantApiUrl);
+
+        // Responde al cliente
+        res.json({
+            DispData: response.data
+        });
+
+
 
         // Envía la respuesta al cliente
-        res.json({
-            "ReturnCode": 0,
-            "ReturnMessage": "",
-            "DispData": "Acosador De Diamantes "+response
-        });
+        // res.json({
+        //     "ReturnCode": 0,
+        //     "ReturnMessage": "",
+        //     "DispData": "="+ JSON.parse(response)
+        // });
+
+
 
 
 
