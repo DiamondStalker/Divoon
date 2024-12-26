@@ -23,7 +23,7 @@ app.get("/valorant/rank", async (req, res) => {
         res.json({
             "ReturnCode": 0,
             "ReturnMessage": "",
-            "DispData": "2024-12-26 13:14:51"
+            "DispData": "Acosador De Diamantes"
         });
 
 
