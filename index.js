@@ -15,9 +15,9 @@ app.get("/valorant/rank", async (req, res) => {
 
     try {
         // API para consultar datos de rango y PL (ejemplo ficticio, actualízalo con una real)
-        // const response = await axios.get(
-        //     `https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0`,
-        // );
+        const response = await axios.get(
+            `https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0`,
+        );
 
         // Envía la respuesta al cliente
         res.json({
