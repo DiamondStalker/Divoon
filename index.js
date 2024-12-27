@@ -1,9 +1,11 @@
 const express = require("express");
 const axios = require("axios");
 const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
 require("dotenv").config();
 
-// Modelo para MongoDB
+// Modelo para MongoDB with Mongoose
 const DataSchema = new mongoose.Schema({
     DispData: String,
     dateUptaded: Date,
@@ -22,15 +24,18 @@ mongoose
     .then(() => console.log("MongoDB connected"))
     .catch((err) => console.error(err));
 
+// Servir archivos estáticos desde la carpeta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
+
 // Ruta para obtener rango y PL
 app.get("/valorant/rank", async (req, res) => {
     try {
         const data = await ValorantData.findOne();
         const lastUpdated = data ? new Date(data.dateUptaded) : null;
         const now = new Date();
-        const hoursDifference = lastUpdated ? Math.abs(now - lastUpdated) / 36e5 : Infinity;
+        const hoursDifference = lastUpdated ? (now - lastUpdated) / (1000 * 60)/**Math.abs(now - lastUpdated) / 36e5*/ : Infinity;
 
-        if (hoursDifference >= 1) {
+        if (hoursDifference >= 20) {
             // Consulta a la API
             const response = await axios.get(valorantApiUrl);
 
@@ -46,8 +51,16 @@ app.get("/valorant/rank", async (req, res) => {
                 await ValorantData.create(updatedData);
             }
 
+            // Escribir datos en un archivo público
+
+            const dataFilePath = path.join(__dirname, "public/Valorant.txt");
+            fs.writeFileSync(dataFilePath, JSON.stringify(updatedData, null, 2));
+
             return res.json(updatedData);
         }
+
+        const dataFilePath = path.join(__dirname, "public/Valorant.txt");
+        fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 
         // Retornar datos existentes
         return res.json(data);
@@ -57,4 +70,6 @@ app.get("/valorant/rank", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
