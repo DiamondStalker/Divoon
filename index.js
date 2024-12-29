@@ -9,6 +9,8 @@ require("dotenv").config();
 const DataSchema = new mongoose.Schema({
     DispData: String,
     dateUptaded: Date,
+    range: Number, // Nuevo campo
+    pl: Number      // Nuevo campo
 });
 const ValorantData = mongoose.model("ValorantData", DataSchema);
 
@@ -33,15 +35,19 @@ app.get("/valorant/rank", async (req, res) => {
         const data = await ValorantData.findOne();
         const lastUpdated = data ? new Date(data.dateUptaded) : null;
         const now = new Date();
-        const hoursDifference = lastUpdated ? (now - lastUpdated) / (1000 * 60)/**Math.abs(now - lastUpdated) / 36e5*/ : Infinity;
+        const hoursDifference = lastUpdated ? Math.abs(now - lastUpdated) / 36e5 : Infinity;
 
-        if (hoursDifference >= 20) {
+        if (hoursDifference >= 1) {
             // Consulta a la API
             const response = await axios.get(valorantApiUrl);
 
+            let temp = JSON.stringify(response.data).toUpperCase().replace(/rr\.|"/gim, "").split(' ')
+
             const updatedData = {
-                DispData: JSON.stringify(response.data).toUpperCase().replace(/rr\./gim, ""),
+                DispData: temp[0],
                 dateUptaded: now,
+                range: temp[1], // Asignar valor de rango
+                pl: temp[3]        // Asignar valor de pl
             };
 
             // Guardar datos actualizados en la base de datos
@@ -52,15 +58,10 @@ app.get("/valorant/rank", async (req, res) => {
             }
 
             // Escribir datos en un archivo público
-
-            const dataFilePath = path.join(__dirname, "public/Valorant.txt");
-            fs.writeFileSync(dataFilePath, JSON.stringify(updatedData, null, 2));
+            fs.writeFileSync(path.join(__dirname, 'public', 'data.txt'), JSON.stringify(updatedData, null, 2));
 
             return res.json(updatedData);
         }
-
-        const dataFilePath = path.join(__dirname, "public/Valorant.txt");
-        fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2));
 
         // Retornar datos existentes
         return res.json(data);

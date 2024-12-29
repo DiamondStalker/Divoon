@@ -1,0 +1,6 @@
+{
+  "DispData": "PLATINUM",
+  "dateUptaded": "2024-12-29T18:06:07.664Z",
+  "range": "2",
+  "pl": "22"
+}
