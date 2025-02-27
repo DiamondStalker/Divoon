@@ -4,6 +4,8 @@ const mongoose = require("mongoose");
 const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
+const cors = require('cors');
+
 
 // Modelo para MongoDB with Mongoose
 const DataSchema = new mongoose.Schema({
@@ -28,6 +30,8 @@ mongoose
 
 // Servir archivos estáticos desde la carpeta 'public'
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(cors());
+
 
 // Ruta para obtener rango y PL
 app.get("/valorant/rank", async (req, res) => {
