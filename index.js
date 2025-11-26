@@ -41,6 +41,8 @@ app.get("/valorant/rank", async (req, res) => {
         const now = new Date();
         const hoursDifference = lastUpdated ? Math.abs(now - lastUpdated) / 36e5 : Infinity;
 
+        console.log(hoursDifference);
+        
         if (hoursDifference >= 1) {
             // Consulta a la API
             const response = await axios.get(valorantApiUrl);
