@@ -1,82 +1,133 @@
-const express = require("express");
-const axios = require("axios");
-const mongoose = require("mongoose");
-const fs = require("fs");
-const path = require("path");
-require("dotenv").config();
+const express = require('express');
+const path = require('path');
 const cors = require('cors');
+require('dotenv').config();
 
-
-// Modelo para MongoDB with Mongoose
-const DataSchema = new mongoose.Schema({
-    DispData: String,
-    dateUptaded: Date,
-    range: Number, // Nuevo campo
-    pl: Number      // Nuevo campo
-});
-const ValorantData = mongoose.model("ValorantData", DataSchema);
+const logger = require('./utils/logger');
+const database = require('./config/database');
+const valorantRoutes = require('./routes/valorantRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const valorantApiUrl =
-    process.env.VALORANT_API_URL ||
-    "https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0";
-
-mongoose
-    .connect(process.env.MONGO_URI)
-    .then(() => console.log("MongoDB connected"))
-    .catch((err) => console.error(err));
-
-// Servir archivos estáticos desde la carpeta 'public'
-app.use(express.static(path.join(__dirname, 'public')));
+// Middleware
 app.use(cors());
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
+// Request logging middleware
+app.use((req, res, next) => {
+    const start = Date.now();
 
-// Ruta para obtener rango y PL
-app.get("/valorant/rank", async (req, res) => {
-    try {
-        const data = await ValorantData.findOne();
-        const lastUpdated = data ? new Date(data.dateUptaded) : null;
-        const now = new Date();
-        const hoursDifference = lastUpdated ? Math.abs(now - lastUpdated) / 36e5 : Infinity;
+    res.on('finish', () => {
+        const duration = Date.now() - start;
+        logger.http(`${req.method} ${req.path} ${res.statusCode} - ${duration}ms`);
+    });
 
-        console.log(hoursDifference);
-        
-        if (hoursDifference >= 1) {
-            // Consulta a la API
-            const response = await axios.get(valorantApiUrl);
+    next();
+});
 
-            let temp = JSON.stringify(response.data).toUpperCase().replace(/rr\.|"/gim, "").split(' ')
+// Routes
+app.use('/valorant', valorantRoutes);
 
-            const updatedData = {
-                DispData: temp[0],
-                dateUptaded: now,
-                range: temp[1], // Asignar valor de rango
-                pl: temp[3]        // Asignar valor de pl
-            };
+// Root endpoint
+app.get('/', (req, res) => {
+    res.json({
+        success: true,
+        message: 'Valorant Rank Tracker API',
+        version: '2.0.0',
+        endpoints: {
+            rank: '/valorant/rank',
+            refresh: '/valorant/rank/refresh',
+            health: '/valorant/health'
+        },
+        documentation: 'https://github.com/yourusername/times-gates'
+    });
+});
 
-            // Guardar datos actualizados en la base de datos
-            if (data) {
-                await ValorantData.updateOne({}, updatedData);
-            } else {
-                await ValorantData.create(updatedData);
-            }
-
-            // Escribir datos en un archivo público
-            fs.writeFileSync(path.join(__dirname, 'public', 'data.txt'), JSON.stringify(updatedData, null, 2));
-
-            return res.json(updatedData);
+// 404 handler
+app.use((req, res) => {
+    logger.warn(`404 Not Found: ${req.method} ${req.path}`);
+    res.status(404).json({
+        success: false,
+        error: 'Endpoint not found',
+        path: req.path,
+        availableEndpoints: {
+            rank: '/valorant/rank',
+            refresh: '/valorant/rank/refresh',
+            health: '/valorant/health'
         }
+    });
+});
 
-        // Retornar datos existentes
-        return res.json(data);
+// Error handling middleware
+app.use((err, req, res, next) => {
+    logger.error('Unhandled error in Express', {
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method
+    });
+
+    res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+        message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred'
+    });
+});
+
+// Inicializar aplicación
+async function startServer() {
+    try {
+        logger.info('Starting Valorant Rank Tracker server...');
+
+        // Conectar a MongoDB
+        await database.connect(process.env.MONGO_URI);
+
+        // Iniciar servidor
+        app.listen(PORT, () => {
+            logger.info(`Server running on port ${PORT}`, {
+                port: PORT,
+                env: process.env.NODE_ENV || 'development',
+                nodeVersion: process.version
+            });
+
+            logger.info('Available endpoints:', {
+                root: `http://localhost:${PORT}/`,
+                rank: `http://localhost:${PORT}/valorant/rank`,
+                refresh: `http://localhost:${PORT}/valorant/rank/refresh`,
+                health: `http://localhost:${PORT}/valorant/health`
+            });
+        });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: "Error fetching data from Valorant API" });
+        logger.error('Failed to start server', {
+            error: error.message,
+            stack: error.stack
+        });
+        process.exit(1);
     }
+}
+
+// Manejar errores no capturados
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Rejection at:', {
+        promise,
+        reason: reason instanceof Error ? reason.message : reason,
+        stack: reason instanceof Error ? reason.stack : undefined
+    });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+process.on('uncaughtException', (error) => {
+    logger.error('Uncaught Exception:', {
+        error: error.message,
+        stack: error.stack
+    });
+
+    // Dar tiempo para que se escriban los logs antes de salir
+    setTimeout(() => {
+        process.exit(1);
+    }, 1000);
 });
+
+// Iniciar el servidor
+startServer();
