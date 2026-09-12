@@ -1,9 +1,9 @@
-const Skill = require('../models/portfolio/Skill');
+const { getSkillModel } = require('../models/portfolio/Skill');
 const logger = require('../utils/logger');
 
 /**
  * PortfolioService — lógica de negocio para el portafolio personal.
- * Expone métodos para consultar skills desde MongoDB.
+ * Usa la conexión dedicada a la DB "portfolio".
  */
 class PortfolioService {
 
@@ -13,6 +13,7 @@ class PortfolioService {
      * @returns {Promise<object[]>}
      */
     async getSkills({ category, sort = 'proficiency', order = 'desc' } = {}) {
+        const Skill = await getSkillModel();
         const filter = { isActive: true };
 
         if (category) {
@@ -39,6 +40,8 @@ class PortfolioService {
      * @returns {Promise<object[]>}
      */
     async getSkillsByCategory(category) {
+        const Skill = await getSkillModel();
+
         logger.info('Fetching skills by category', { category });
 
         const skills = await Skill.find({
@@ -48,10 +51,7 @@ class PortfolioService {
         .sort({ proficiency: -1, priority: -1 })
         .select('-__v');
 
-        logger.info('Skills by category fetched', {
-            category,
-            count: skills.length,
-        });
+        logger.info('Skills by category fetched', { category, count: skills.length });
 
         return skills;
     }
@@ -61,6 +61,8 @@ class PortfolioService {
      * @returns {Promise<object[]>}
      */
     async getStats() {
+        const Skill = await getSkillModel();
+
         logger.info('Fetching skill stats');
 
         const stats = await Skill.aggregate([

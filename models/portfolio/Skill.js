@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
+const { getConnection } = require('../../config/portfolioDb');
 
 /**
  * Skill — habilidad técnica del portafolio personal.
- * Migrado desde el backend standalone del portafolio.
+ * Usa la conexión dedicada a la DB "portfolio".
  */
 const skillSchema = new mongoose.Schema({
     name: {
@@ -60,5 +61,17 @@ const skillSchema = new mongoose.Schema({
 skillSchema.index({ category: 1, isActive: 1 });
 skillSchema.index({ proficiency: -1 });
 
-const Skill = mongoose.model('Skill', skillSchema);
-module.exports = Skill;
+/**
+ * Retorna el modelo Skill ligado a la conexión de portfolio.
+ * Se llama una vez y se cachea.
+ */
+let SkillModel = null;
+
+async function getSkillModel() {
+    if (SkillModel) return SkillModel;
+    const conn = await getConnection();
+    SkillModel = conn.model('Skill', skillSchema);
+    return SkillModel;
+}
+
+module.exports = { getSkillModel };
