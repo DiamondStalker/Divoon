@@ -3,7 +3,6 @@ const path = require('path');
 const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 const logger = require('./utils/logger');
@@ -23,20 +22,7 @@ app.use(helmet({
 // ── Compresión gzip ──────────────────────────────────────────────────────────
 app.use(compression());
 
-// ── Rate limiting global ─────────────────────────────────────────────────────
-const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-        success: false,
-        error: 'Demasiadas solicitudes. Intenta de nuevo en 15 minutos.',
-    },
-});
-app.use(globalLimiter);
-
-// ── CORS global (rutas abiertas: valorant, games) ────────────────────────────
+// ── CORS global (valorant, games) ────────────────────────────────────────────
 // portfolioRoutes tiene su propio CORS restringido aplicado internamente
 app.use(cors());
 
@@ -83,7 +69,7 @@ app.get('/', (req, res) => {
             },
             portfolio: {
                 skills: 'GET /portfolio/skills',
-                skillsByCategory: 'GET /portfolio/skills/category/:category',
+                category: 'GET /portfolio/category/:category',
                 stats: 'GET /portfolio/skills/stats',
                 health: 'GET /portfolio/health',
             },
@@ -133,12 +119,9 @@ async function startServer() {
 
             logger.info('Available endpoints:', {
                 root: `http://localhost:${PORT}/`,
-                // Valorant
                 valorantRank: `http://localhost:${PORT}/valorant/rank`,
-                // Games
                 gamesWin: `http://localhost:${PORT}/games/sushigo/win`,
                 gamesCurrent: `http://localhost:${PORT}/games/sushigo/current`,
-                // Portfolio
                 portfolioSkills: `http://localhost:${PORT}/portfolio/skills`,
                 portfolioStats: `http://localhost:${PORT}/portfolio/skills/stats`,
             });

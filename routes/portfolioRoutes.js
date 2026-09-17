@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const portfolioService = require('../services/portfolioService');
 const logger = require('../utils/logger');
@@ -18,8 +19,25 @@ const portfolioCors = cors({
     credentials: true,
 });
 
+/**
+ * Rate limiting solo para portfolio.
+ * trustProxy: true para que Render pase la IP real del cliente.
+ */
+const portfolioLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    trustProxy: true,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+        success: false,
+        error: 'Demasiadas solicitudes. Intenta de nuevo en 15 minutos.',
+    },
+});
+
 router.use(portfolioCors);
 router.options('*', portfolioCors);
+router.use(portfolioLimiter);
 
 /**
  * GET /portfolio/skills
