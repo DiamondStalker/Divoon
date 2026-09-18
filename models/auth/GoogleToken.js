@@ -9,7 +9,7 @@ const googleTokenSchema = new mongoose.Schema({
     uid: {
         type: String,
         required: true,
-        unique: true,
+        unique: true,  // unique ya crea el índice — no se necesita googleTokenSchema.index()
         trim: true,
     },
     refresh_token: {
@@ -20,8 +20,6 @@ const googleTokenSchema = new mongoose.Schema({
     timestamps: true,
     collection: 'GoogleTokens',
 });
-
-googleTokenSchema.index({ uid: 1 });
 
 const GoogleToken = mongoose.model('GoogleToken', googleTokenSchema);
 module.exports = GoogleToken;

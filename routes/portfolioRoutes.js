@@ -21,12 +21,11 @@ const portfolioCors = cors({
 
 /**
  * Rate limiting solo para portfolio.
- * trustProxy: true para que Render pase la IP real del cliente.
+ * El trust proxy se configura a nivel de app en index.js.
  */
 const portfolioLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
-    trustProxy: true,
     standardHeaders: true,
     legacyHeaders: false,
     message: {
@@ -157,7 +156,6 @@ router.get('/skills/stats', async (req, res) => {
 
 /**
  * GET /portfolio/health
- * Health check específico del módulo portafolio.
  */
 router.get('/health', (req, res) => {
     res.json({

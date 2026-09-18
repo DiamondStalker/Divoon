@@ -15,6 +15,10 @@ const authRoutes = require('./routes/authRoutes');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// ── Trust proxy (Render corre detrás de un proxy) ────────────────────────────
+// Necesario para que express-rate-limit lea la IP real del cliente
+app.set('trust proxy', 1);
+
 // ── Seguridad ────────────────────────────────────────────────────────────────
 app.use(helmet({
     crossOriginEmbedderPolicy: false,
