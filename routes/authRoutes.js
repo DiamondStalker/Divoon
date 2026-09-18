@@ -84,7 +84,7 @@ router.get('/calendar/refresh', async (req, res) => {
 
         logger.info(`[${requestId}] GET /auth/calendar/refresh`);
 
-        const result = await authService.refreshAccessToken(idToken);
+        const result = await authService.getAccessToken(idToken);
 
         return res.json({
             success: true,

@@ -87,7 +87,6 @@ class AuthService {
             throw new Error('Google no devolvió refresh_token. El código ya fue usado o no incluye offline access.');
         }
 
-        // Upsert: un registro por uid
         await GoogleToken.findOneAndUpdate(
             { uid },
             { uid, refresh_token: refreshToken },
@@ -100,49 +99,33 @@ class AuthService {
     }
 
     /**
-     * Usa el refresh_token almacenado para obtener un nuevo access_token.
+     * Emite un access_token si ya hay refresh_token guardado para el usuario.
+     * Lanza NOT_FOUND si no hay registro aún.
      * @param {string} idToken - Firebase ID token del usuario
      * @returns {Promise<{ accessToken: string }>}
      */
-    async refreshAccessToken(idToken) {
+    async getAccessToken(idToken) {
         const uid = await this.validateIdToken(idToken);
 
-        logger.info('Refreshing access token', { uid });
-
         const record = await GoogleToken.findOne({ uid });
+        if (!record) throw new Error('NOT_FOUND');
 
-        if (!record) {
-            throw new Error('NOT_FOUND');
-        }
+        logger.info('Getting access token via refresh', { uid });
 
         const params = new URLSearchParams({
             refresh_token: record.refresh_token,
-            client_id: process.env.GOOGLE_CLIENT_ID,
+            client_id:     process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            grant_type: 'refresh_token',
+            grant_type:    'refresh_token',
         });
 
-        let accessToken;
+        const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        });
 
-        try {
-            const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            });
+        logger.info('Access token obtained successfully', { uid });
 
-            accessToken = response.data.access_token;
-
-        } catch (error) {
-            logger.error('Google token refresh failed', {
-                uid,
-                status: error.response?.status,
-                error: error.response?.data || error.message,
-            });
-            throw new Error('Error al renovar el token con Google.');
-        }
-
-        logger.info('Access token refreshed successfully', { uid });
-
-        return { accessToken };
+        return { accessToken: response.data.access_token };
     }
 }
 
