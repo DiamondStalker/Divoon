@@ -118,4 +118,34 @@ router.get('/calendar/refresh', async (req, res) => {
     }
 });
 
+/**
+ * GET /auth/calendar/token
+ * Alias directo para obtener un access_token desde el refresh_token almacenado.
+ *
+ * Header: Authorization: Bearer <idToken>
+ *
+ * Response 200: { success: true, accessToken: string, requestId: string }
+ * Response 401: header ausente o idToken inválido
+ * Response 404: sin refresh token almacenado
+ * Response 500: error de Google
+ */
+router.get('/calendar/token', async (req, res) => {
+    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader?.startsWith('Bearer ')) {
+            return res.status(401).json({ success: false, error: 'Authorization header requerido.' });
+        }
+        const idToken = authHeader.split('Bearer ')[1];
+        const result  = await authService.getAccessToken(idToken);
+        return res.json({ success: true, accessToken: result.accessToken, requestId });
+    } catch (error) {
+        if (error.message === 'NOT_FOUND') {
+            return res.status(404).json({ success: false, error: 'Sin refresh token almacenado.', requestId });
+        }
+        const isAuth = error.message.includes('inválido') || error.message.includes('expirado');
+        return res.status(isAuth ? 401 : 500).json({ success: false, error: error.message, requestId });
+    }
+});
+
 module.exports = router;
