@@ -3,27 +3,33 @@ const GoogleToken = require('../models/auth/GoogleToken');
 const logger = require('../utils/logger');
 
 const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_TOKENINFO_URL = 'https://oauth2.googleapis.com/tokeninfo';
+const FIREBASE_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 
 class AuthService {
 
     /**
-     * Valida un Firebase ID token contra Google tokeninfo.
-     * Retorna el uid (sub) del usuario si es válido.
+     * Valida un Firebase ID token usando Identity Toolkit.
+     * Retorna el uid (localId) del usuario si es válido.
      * @param {string} idToken
      * @returns {Promise<string>} uid
      */
     async validateIdToken(idToken) {
+        const apiKey = process.env.FIREBASE_API_KEY;
+        if (!apiKey) throw new Error('FIREBASE_API_KEY no configurado.');
+
         try {
-            const response = await axios.get(GOOGLE_TOKENINFO_URL, {
-                params: { id_token: idToken },
-            });
+            const response = await axios.post(
+                `${FIREBASE_LOOKUP_URL}?key=${apiKey}`,
+                { idToken },
+                { headers: { 'Content-Type': 'application/json' } }
+            );
 
-            const { sub, email } = response.data;
-
-            if (!sub) {
-                throw new Error('Token inválido: no contiene sub (uid).');
+            const users = response.data?.users;
+            if (!users || users.length === 0) {
+                throw new Error('ID token inválido o expirado.');
             }
+
+            const { localId: sub, email } = users[0];
 
             logger.info('ID token validated', { uid: sub, email });
             return sub;
