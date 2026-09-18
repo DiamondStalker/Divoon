@@ -10,6 +10,7 @@ const database = require('./config/database');
 const valorantRoutes = require('./routes/valorantRoutes');
 const gamesRoutes = require('./routes/gamesRoutes');
 const portfolioRoutes = require('./routes/portfolioRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,7 +23,7 @@ app.use(helmet({
 // ── Compresión gzip ──────────────────────────────────────────────────────────
 app.use(compression());
 
-// ── CORS global (valorant, games) ────────────────────────────────────────────
+// ── CORS global (valorant, games, auth) ──────────────────────────────────────
 // portfolioRoutes tiene su propio CORS restringido aplicado internamente
 app.use(cors());
 
@@ -47,6 +48,7 @@ app.use((req, res, next) => {
 app.use('/valorant', valorantRoutes);
 app.use('/games', gamesRoutes);
 app.use('/portfolio', portfolioRoutes);
+app.use('/auth', authRoutes);
 
 // ── Root ─────────────────────────────────────────────────────────────────────
 app.get('/', (req, res) => {
@@ -72,6 +74,10 @@ app.get('/', (req, res) => {
                 category: 'GET /portfolio/category/:category',
                 stats: 'GET /portfolio/skills/stats',
                 health: 'GET /portfolio/health',
+            },
+            auth: {
+                exchange: 'POST /auth/calendar/exchange',
+                refresh: 'GET /auth/calendar/refresh',
             },
         },
     });
@@ -123,7 +129,8 @@ async function startServer() {
                 gamesWin: `http://localhost:${PORT}/games/sushigo/win`,
                 gamesCurrent: `http://localhost:${PORT}/games/sushigo/current`,
                 portfolioSkills: `http://localhost:${PORT}/portfolio/skills`,
-                portfolioStats: `http://localhost:${PORT}/portfolio/skills/stats`,
+                authExchange: `http://localhost:${PORT}/auth/calendar/exchange`,
+                authRefresh: `http://localhost:${PORT}/auth/calendar/refresh`,
             });
         });
     } catch (error) {
