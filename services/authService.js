@@ -47,9 +47,10 @@ class AuthService {
      * Guarda el refresh_token en DB (upsert por uid).
      * @param {string} idToken - Firebase ID token del usuario
      * @param {string} code - Código OAuth de Google
+     * @param {string} redirectUri - URI de redirección (opcional, fallback a env)
      * @returns {Promise<{ accessToken: string }>}
      */
-    async exchangeCode(idToken, code) {
+    async exchangeCode(idToken, code, redirectUri) {
         const uid = await this.validateIdToken(idToken);
 
         logger.info('Exchanging authorization code', { uid });
@@ -58,7 +59,7 @@ class AuthService {
             code,
             client_id: process.env.GOOGLE_CLIENT_ID,
             client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: process.env.GOOGLE_REDIRECT_URI,
+            redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
             grant_type: 'authorization_code',
         });
 

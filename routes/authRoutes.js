@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
  * POST /auth/calendar/exchange
  * Intercambia un código OAuth por access_token y guarda el refresh_token en DB.
  *
- * Body: { idToken: string, code: string }
+ * Body: { idToken: string, code: string, redirectUri?: string }
  *
  * Response 200: { accessToken: string }
  * Response 400: falta idToken o code
@@ -18,7 +18,7 @@ router.post('/calendar/exchange', async (req, res) => {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     try {
-        const { idToken, code } = req.body;
+        const { idToken, code, redirectUri } = req.body;
 
         if (!idToken || !code) {
             return res.status(400).json({
@@ -30,7 +30,7 @@ router.post('/calendar/exchange', async (req, res) => {
 
         logger.info(`[${requestId}] POST /auth/calendar/exchange`);
 
-        const result = await authService.exchangeCode(idToken, code);
+        const result = await authService.exchangeCode(idToken, code, redirectUri);
 
         return res.json({
             success: true,
