@@ -12,6 +12,38 @@ jest.mock('../utils/logger', () => ({
   logDbError: jest.fn(),
 }));
 
+// Mock del cacheService: los tests de rutas no deben depender de MongoDB ni de la API externa
+const mockRankData = {
+  DispData: 'Diamond 2 - 45RR',
+  dateUpdated: new Date().toISOString(),
+  range: 'Diamond 2',
+  pl: 45,
+};
+
+jest.mock('../services/cacheService', () => ({
+  getRankData: jest.fn(),
+  forceRefresh: jest.fn(),
+  getCachedData: jest.fn(),
+  calculateHoursSince: jest.fn(),
+}));
+
+const cacheService = require('../services/cacheService');
+
+beforeEach(() => {
+  cacheService.getRankData.mockResolvedValue({
+    data: mockRankData,
+    source: 'cache',
+    cached: true,
+    hoursSinceUpdate: 0.5,
+  });
+  cacheService.forceRefresh.mockResolvedValue({
+    data: mockRankData,
+    source: 'api',
+  });
+  cacheService.getCachedData.mockResolvedValue(mockRankData);
+  cacheService.calculateHoursSince.mockReturnValue(0.5);
+});
+
 describe('Valorant Routes', () => {
   describe('GET /valorant', () => {
     it('should return module documentation', async () => {

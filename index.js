@@ -215,6 +215,10 @@ process.on('uncaughtException', (error) => {
   }, 1000);
 });
 
-startServer();
+// Solo arrancar (DB + listen) cuando se ejecuta directamente con `node index.js`,
+// no cuando un test hace require('../index')
+if (require.main === module) {
+  startServer();
+}
 
 module.exports = app; // Exportar para tests

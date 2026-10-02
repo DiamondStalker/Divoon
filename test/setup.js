@@ -17,8 +17,8 @@ global.console = {
   error: jest.fn(),
 };
 
-// Mock timers
-jest.useFakeTimers();
+// Sin fake timers globales: rompen los timeouts internos de Mongoose.
+// Si un test los necesita, que llame jest.useFakeTimers() dentro de su propio describe.
 
 // Timeout para todos los tests
 jest.setTimeout(10000);
@@ -26,16 +26,4 @@ jest.setTimeout(10000);
 // Limpiar después de cada test
 afterEach(() => {
   jest.clearAllMocks();
-  jest.clearAllTimers();
-});
-
-// Global setup
-beforeAll(() => {
-  // Ejecutar antes de todos los tests
-});
-
-// Global teardown
-afterAll(() => {
-  // Limpiar después de todos los tests
-  jest.useRealTimers();
 });

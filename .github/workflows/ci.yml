@@ -7,7 +7,7 @@ on:
     branches: [ main, develop ]
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
   NODE_ENV: 'test'
 
 jobs:
@@ -18,7 +18,7 @@ jobs:
       mongodb:
         image: mongo:6
         options: >-
-          --health-cmd mongosh
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -45,13 +45,10 @@ jobs:
       - name: Tests unitarios (sin games)
         run: npm test
         env:
-          MONGO_URI: mongodb://localhost:27017/divoon-test
+          # Usa el secret si existe; si no, el Mongo temporal del service de arriba
+          MONGO_URI: ${{ secrets.MONGO_URI_TEST || 'mongodb://localhost:27017/divoon-test' }}
           VALORANT_API_URL: ${{ secrets.VALORANT_API_URL || 'https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0' }}
           NODE_ENV: test
-
-      - name: Generar coverage report
-        run: npm test -- --coverage || true
-        continue-on-error: true
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -61,11 +58,8 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
 
-      - name: Build check (validar que se pueda hacer build)
+      - name: Syntax check
         run: node -c index.js
-        env:
-          MONGO_URI: mongodb://localhost:27017/divoon-test
-          PORT: 5000
 
   security:
     runs-on: ubuntu-latest
@@ -78,19 +72,21 @@ jobs:
         run: npm audit --audit-level=moderate || true
         continue-on-error: true
 
-  deploy:
+  automerge:
     needs: [test, security]
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+    # Solo PRs hacia main, desde ramas de este repo (no forks) y que no sean draft
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.base_ref == 'main' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      !github.event.pull_request.draft
+    permissions:
+      contents: write
+      pull-requests: write
+
     steps:
-      - name: Checkout código
-        uses: actions/checkout@v4
-
-      - name: Trigger Render deploy
-        run: |
-          curl --no-progress-meter -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
-        if: secrets.RENDER_DEPLOY_HOOK != ''
-
-      - name: Deploy notification
-        run: echo "✅ Deployment to https://divoon.onrender.com/ initiated"
+      - name: Merge PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr merge "${{ github.event.pull_request.number }}" --repo "${{ github.repository }}" --merge --delete-branch
