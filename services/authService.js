@@ -6,43 +6,42 @@ const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const FIREBASE_LOOKUP_URL = 'https://identitytoolkit.googleapis.com/v1/accounts:lookup';
 
 class AuthService {
-
-    /**
+  /**
      * Valida un Firebase ID token usando Identity Toolkit.
      * Retorna el uid (localId) del usuario si es válido.
      * @param {string} idToken
      * @returns {Promise<string>} uid
      */
-    async validateIdToken(idToken) {
-        const apiKey = process.env.FIREBASE_API_KEY;
-        if (!apiKey) throw new Error('FIREBASE_API_KEY no configurado.');
+  // eslint-disable-next-line class-methods-use-this
+  async validateIdToken(idToken) {
+    const apiKey = process.env.FIREBASE_API_KEY;
+    if (!apiKey) throw new Error('FIREBASE_API_KEY no configurado.');
 
-        try {
-            const response = await axios.post(
-                `${FIREBASE_LOOKUP_URL}?key=${apiKey}`,
-                { idToken },
-                { headers: { 'Content-Type': 'application/json' } }
-            );
+    try {
+      const response = await axios.post(
+        `${FIREBASE_LOOKUP_URL}?key=${apiKey}`,
+        { idToken },
+        { headers: { 'Content-Type': 'application/json' } },
+      );
 
-            const users = response.data?.users;
-            if (!users || users.length === 0) {
-                throw new Error('ID token inválido o expirado.');
-            }
+      const users = response.data?.users;
+      if (!users || users.length === 0) {
+        throw new Error('ID token inválido o expirado.');
+      }
 
-            const { localId: sub, email } = users[0];
+      const { localId: sub, email } = users[0];
 
-            logger.info('ID token validated', { uid: sub, email });
-            return sub;
-
-        } catch (error) {
-            if (error.response?.status === 400) {
-                throw new Error('ID token inválido o expirado.');
-            }
-            throw error;
-        }
+      logger.info('ID token validated', { uid: sub, email });
+      return sub;
+    } catch (error) {
+      if (error.response?.status === 400) {
+        throw new Error('ID token inválido o expirado.');
+      }
+      throw error;
     }
+  }
 
-    /**
+  /**
      * Intercambia un código de autorización por access_token + refresh_token.
      * Guarda el refresh_token en DB (upsert por uid).
      * @param {string} idToken - Firebase ID token del usuario
@@ -50,83 +49,83 @@ class AuthService {
      * @param {string} redirectUri - URI de redirección (opcional, fallback a env)
      * @returns {Promise<{ accessToken: string }>}
      */
-    async exchangeCode(idToken, code, redirectUri) {
-        const uid = await this.validateIdToken(idToken);
+  async exchangeCode(idToken, code, redirectUri) {
+    const uid = await this.validateIdToken(idToken);
 
-        logger.info('Exchanging authorization code', { uid });
+    logger.info('Exchanging authorization code', { uid });
 
-        const params = new URLSearchParams({
-            code,
-            client_id: process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
-            grant_type: 'authorization_code',
-        });
+    const params = new URLSearchParams({
+      code,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      redirect_uri: redirectUri || process.env.GOOGLE_REDIRECT_URI,
+      grant_type: 'authorization_code',
+    });
 
-        let accessToken, refreshToken;
+    let accessToken; let
+      refreshToken;
 
-        try {
-            const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            });
+    try {
+      const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
 
-            accessToken = response.data.access_token;
-            refreshToken = response.data.refresh_token;
-
-        } catch (error) {
-            logger.error('Google code exchange failed', {
-                uid,
-                status: error.response?.status,
-                error: error.response?.data || error.message,
-            });
-            throw new Error('Error al intercambiar el código con Google.');
-        }
-
-        if (!refreshToken) {
-            logger.warn('Google did not return a refresh_token — code may have been used before', { uid });
-            throw new Error('Google no devolvió refresh_token. El código ya fue usado o no incluye offline access.');
-        }
-
-        await GoogleToken.findOneAndUpdate(
-            { uid },
-            { uid, refresh_token: refreshToken },
-            { upsert: true, new: true }
-        );
-
-        logger.info('Refresh token saved', { uid });
-
-        return { accessToken };
+      accessToken = response.data.access_token;
+      refreshToken = response.data.refresh_token;
+    } catch (error) {
+      logger.error('Google code exchange failed', {
+        uid,
+        status: error.response?.status,
+        error: error.response?.data || error.message,
+      });
+      throw new Error('Error al intercambiar el código con Google.');
     }
 
-    /**
+    if (!refreshToken) {
+      logger.warn('Google did not return a refresh_token — code may have been used before', { uid });
+      throw new Error('Google no devolvió refresh_token. El código ya fue usado o no incluye offline access.');
+    }
+
+    await GoogleToken.findOneAndUpdate(
+      { uid },
+      { uid, refresh_token: refreshToken },
+      { upsert: true, new: true },
+    );
+
+    logger.info('Refresh token saved', { uid });
+
+    return { accessToken };
+  }
+
+  /**
      * Emite un access_token si ya hay refresh_token guardado para el usuario.
      * Lanza NOT_FOUND si no hay registro aún.
      * @param {string} idToken - Firebase ID token del usuario
      * @returns {Promise<{ accessToken: string }>}
      */
-    async getAccessToken(idToken) {
-        const uid = await this.validateIdToken(idToken);
+  async getAccessToken(idToken) {
+    const uid = await this.validateIdToken(idToken);
 
-        const record = await GoogleToken.findOne({ uid });
-        if (!record) throw new Error('NOT_FOUND');
+    const record = await GoogleToken.findOne({ uid });
+    if (!record) throw new Error('NOT_FOUND');
 
-        logger.info('Getting access token via refresh', { uid });
+    logger.info('Getting access token via refresh', { uid });
 
-        const params = new URLSearchParams({
-            refresh_token: record.refresh_token,
-            client_id:     process.env.GOOGLE_CLIENT_ID,
-            client_secret: process.env.GOOGLE_CLIENT_SECRET,
-            grant_type:    'refresh_token',
-        });
+    const params = new URLSearchParams({
+      refresh_token: record.refresh_token,
+      client_id: process.env.GOOGLE_CLIENT_ID,
+      client_secret: process.env.GOOGLE_CLIENT_SECRET,
+      grant_type: 'refresh_token',
+    });
 
-        const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        });
+    const response = await axios.post(GOOGLE_TOKEN_URL, params.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
 
-        logger.info('Access token obtained successfully', { uid });
+    logger.info('Access token obtained successfully', { uid });
 
-        return { accessToken: response.data.access_token };
-    }
+    return { accessToken: response.data.access_token };
+  }
 }
 
 module.exports = new AuthService();

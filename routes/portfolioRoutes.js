@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
+
 const router = express.Router();
 const portfolioService = require('../services/portfolioService');
 const logger = require('../utils/logger');
@@ -10,13 +11,13 @@ const logger = require('../utils/logger');
  * Las demás rutas de Divoon no se ven afectadas.
  */
 const portfolioCors = cors({
-    origin: [
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'https://diamondstalker.github.io',
-        process.env.PORTFOLIO_URL,
-    ].filter(Boolean),
-    credentials: true,
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://diamondstalker.github.io',
+    process.env.PORTFOLIO_URL,
+  ].filter(Boolean),
+  credentials: true,
 });
 
 /**
@@ -24,14 +25,14 @@ const portfolioCors = cors({
  * El trust proxy se configura a nivel de app en index.js.
  */
 const portfolioLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: {
-        success: false,
-        error: 'Demasiadas solicitudes. Intenta de nuevo en 15 minutos.',
-    },
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: 'Demasiadas solicitudes. Intenta de nuevo en 15 minutos.',
+  },
 });
 
 router.use(portfolioCors);
@@ -43,38 +44,37 @@ router.use(portfolioLimiter);
  * Todas las skills activas. Soporta ?category=testing&sort=proficiency&order=desc
  */
 router.get('/skills', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        const { category, sort, order } = req.query;
+  try {
+    const { category, sort, order } = req.query;
 
-        logger.info(`[${requestId}] GET /portfolio/skills`, { category, sort, order });
+    logger.info(`[${requestId}] GET /portfolio/skills`, { category, sort, order });
 
-        const skills = await portfolioService.getSkills({ category, sort, order });
+    const skills = await portfolioService.getSkills({ category, sort, order });
 
-        return res.json({
-            success: true,
-            statusCode: 200,
-            message: 'Skills obtenidas exitosamente',
-            data: { skills },
-            timestamp: new Date().toISOString(),
-            requestId,
-        });
+    return res.json({
+      success: true,
+      statusCode: 200,
+      message: 'Skills obtenidas exitosamente',
+      data: { skills },
+      timestamp: new Date().toISOString(),
+      requestId,
+    });
+  } catch (error) {
+    logger.error(`[${requestId}] Error in GET /portfolio/skills`, {
+      error: error.message,
+      stack: error.stack,
+    });
 
-    } catch (error) {
-        logger.error(`[${requestId}] Error in GET /portfolio/skills`, {
-            error: error.message,
-            stack: error.stack,
-        });
-
-        return res.status(500).json({
-            success: false,
-            statusCode: 500,
-            message: 'Error interno del servidor',
-            error: error.message,
-            requestId,
-        });
-    }
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'Error interno del servidor',
+      error: error.message,
+      requestId,
+    });
+  }
 });
 
 /**
@@ -83,38 +83,37 @@ router.get('/skills', async (req, res) => {
  * Ejemplo: GET /portfolio/category/testing
  */
 router.get('/category/:category', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        const { category } = req.params;
+  try {
+    const { category } = req.params;
 
-        logger.info(`[${requestId}] GET /portfolio/category/${category}`);
+    logger.info(`[${requestId}] GET /portfolio/category/${category}`);
 
-        const skills = await portfolioService.getSkillsByCategory(category);
+    const skills = await portfolioService.getSkillsByCategory(category);
 
-        return res.json({
-            success: true,
-            statusCode: 200,
-            message: `Skills de la categoría ${category} obtenidas exitosamente`,
-            data: { skills },
-            timestamp: new Date().toISOString(),
-            requestId,
-        });
+    return res.json({
+      success: true,
+      statusCode: 200,
+      message: `Skills de la categoría ${category} obtenidas exitosamente`,
+      data: { skills },
+      timestamp: new Date().toISOString(),
+      requestId,
+    });
+  } catch (error) {
+    logger.error(`[${requestId}] Error in GET /portfolio/category/:category`, {
+      error: error.message,
+      stack: error.stack,
+    });
 
-    } catch (error) {
-        logger.error(`[${requestId}] Error in GET /portfolio/category/:category`, {
-            error: error.message,
-            stack: error.stack,
-        });
-
-        return res.status(500).json({
-            success: false,
-            statusCode: 500,
-            message: 'Error interno del servidor',
-            error: error.message,
-            requestId,
-        });
-    }
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'Error interno del servidor',
+      error: error.message,
+      requestId,
+    });
+  }
 });
 
 /**
@@ -122,48 +121,47 @@ router.get('/category/:category', async (req, res) => {
  * Estadísticas agrupadas por categoría.
  */
 router.get('/skills/stats', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        logger.info(`[${requestId}] GET /portfolio/skills/stats`);
+  try {
+    logger.info(`[${requestId}] GET /portfolio/skills/stats`);
 
-        const stats = await portfolioService.getStats();
+    const stats = await portfolioService.getStats();
 
-        return res.json({
-            success: true,
-            statusCode: 200,
-            message: 'Estadísticas obtenidas exitosamente',
-            data: { stats },
-            timestamp: new Date().toISOString(),
-            requestId,
-        });
+    return res.json({
+      success: true,
+      statusCode: 200,
+      message: 'Estadísticas obtenidas exitosamente',
+      data: { stats },
+      timestamp: new Date().toISOString(),
+      requestId,
+    });
+  } catch (error) {
+    logger.error(`[${requestId}] Error in GET /portfolio/skills/stats`, {
+      error: error.message,
+      stack: error.stack,
+    });
 
-    } catch (error) {
-        logger.error(`[${requestId}] Error in GET /portfolio/skills/stats`, {
-            error: error.message,
-            stack: error.stack,
-        });
-
-        return res.status(500).json({
-            success: false,
-            statusCode: 500,
-            message: 'Error interno del servidor',
-            error: error.message,
-            requestId,
-        });
-    }
+    return res.status(500).json({
+      success: false,
+      statusCode: 500,
+      message: 'Error interno del servidor',
+      error: error.message,
+      requestId,
+    });
+  }
 });
 
 /**
  * GET /portfolio/health
  */
 router.get('/health', (req, res) => {
-    res.json({
-        success: true,
-        module: 'portfolio',
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-    });
+  res.json({
+    success: true,
+    module: 'portfolio',
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 module.exports = router;

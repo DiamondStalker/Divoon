@@ -6,19 +6,19 @@ const mongoose = require('mongoose');
  * a Google Calendar sin re-autenticar al usuario.
  */
 const googleTokenSchema = new mongoose.Schema({
-    uid: {
-        type: String,
-        required: true,
-        unique: true,  // unique ya crea el índice — no se necesita googleTokenSchema.index()
-        trim: true,
-    },
-    refresh_token: {
-        type: String,
-        required: true,
-    },
+  uid: {
+    type: String,
+    required: true,
+    unique: true, // unique ya crea el índice — no se necesita googleTokenSchema.index()
+    trim: true,
+  },
+  refresh_token: {
+    type: String,
+    required: true,
+  },
 }, {
-    timestamps: true,
-    collection: 'GoogleTokens',
+  timestamps: true,
+  collection: 'GoogleTokens',
 });
 
 const GoogleToken = mongoose.model('GoogleToken', googleTokenSchema);
