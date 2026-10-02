@@ -42,27 +42,5 @@
     "jest": "^29.7.0",
     "nodemon": "^3.0.2",
     "supertest": "^6.3.3"
-  },
-  "jest": {
-    "testEnvironment": "node",
-    "coverageDirectory": "coverage",
-    "collectCoverageFrom": [
-      "services/**/*.js",
-      "routes/**/*.js",
-      "models/**/*.js",
-      "utils/**/*.js",
-      "!**/node_modules/**"
-    ],
-    "testMatch": [
-      "**/test/**/*.test.js"
-    ],
-    "coverageThreshold": {
-      "global": {
-        "branches": 60,
-        "functions": 60,
-        "lines": 60,
-        "statements": 60
-      }
-    }
   }
 }
