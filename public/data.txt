@@ -1,6 +1,6 @@
 {
-  "DispData": "PLATINUM",
-  "dateUptaded": "2024-12-29T18:06:07.664Z",
-  "range": "2",
-  "pl": "22"
+  "DispData": "DIAMOND",
+  "dateUpdated": "2026-10-02T20:53:25.229Z",
+  "range": 3,
+  "pl": 90
 }

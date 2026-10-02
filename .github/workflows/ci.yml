@@ -50,10 +50,6 @@ jobs:
           VALORANT_API_URL: ${{ secrets.VALORANT_API_URL || 'https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0' }}
           NODE_ENV: test
 
-      - name: Generar coverage report
-        run: npm test -- --coverage || true
-        continue-on-error: true
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:

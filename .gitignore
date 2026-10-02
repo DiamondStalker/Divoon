@@ -2,6 +2,9 @@
 .env.*
 .env
 
+# Tests
+coverage/
+
 # Logs
 logs/
 *.log
