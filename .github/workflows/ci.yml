@@ -1,0 +1,96 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  NODE_VERSION: '18'
+  NODE_ENV: 'test'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:6
+        options: >-
+          --health-cmd mongosh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Lint - ESLint
+        run: npm run lint || true
+        continue-on-error: true
+
+      - name: Tests unitarios (sin games)
+        run: npm test
+        env:
+          MONGO_URI: mongodb://localhost:27017/divoon-test
+          VALORANT_API_URL: ${{ secrets.VALORANT_API_URL || 'https://api.kyroskoh.xyz/valorant/v1/mmr/na/DiamondStalker/MaMi?show=combo&display=0' }}
+          NODE_ENV: test
+
+      - name: Generar coverage report
+        run: npm test -- --coverage || true
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/lcov.info
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Build check (validar que se pueda hacer build)
+        run: node -c index.js
+        env:
+          MONGO_URI: mongodb://localhost:27017/divoon-test
+          PORT: 5000
+
+  security:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Dependency check
+        run: npm audit --audit-level=moderate || true
+        continue-on-error: true
+
+  deploy:
+    needs: [test, security]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Trigger Render deploy
+        run: |
+          curl --no-progress-meter -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+        if: secrets.RENDER_DEPLOY_HOOK != ''
+
+      - name: Deploy notification
+        run: echo "✅ Deployment to https://divoon.onrender.com/ initiated"

@@ -1,4 +1,5 @@
 const express = require('express');
+
 const router = express.Router();
 const authService = require('../services/authService');
 const logger = require('../utils/logger');
@@ -15,44 +16,43 @@ const logger = require('../utils/logger');
  * Response 500: error de Google o DB
  */
 router.post('/calendar/exchange', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        const { idToken, code, redirectUri } = req.body;
+  try {
+    const { idToken, code, redirectUri } = req.body;
 
-        if (!idToken || !code) {
-            return res.status(400).json({
-                success: false,
-                error: 'Se requieren los campos "idToken" y "code".',
-                requestId,
-            });
-        }
-
-        logger.info(`[${requestId}] POST /auth/calendar/exchange`);
-
-        const result = await authService.exchangeCode(idToken, code, redirectUri);
-
-        return res.json({
-            success: true,
-            accessToken: result.accessToken,
-            timestamp: new Date().toISOString(),
-            requestId,
-        });
-
-    } catch (error) {
-        const isAuthError = error.message.includes('inválido') || error.message.includes('expirado');
-
-        logger.error(`[${requestId}] Error in POST /auth/calendar/exchange`, {
-            error: error.message,
-        });
-
-        return res.status(isAuthError ? 401 : 500).json({
-            success: false,
-            error: isAuthError ? 'Token de autenticación inválido.' : 'Error al procesar la solicitud.',
-            message: error.message,
-            requestId,
-        });
+    if (!idToken || !code) {
+      return res.status(400).json({
+        success: false,
+        error: 'Se requieren los campos "idToken" y "code".',
+        requestId,
+      });
     }
+
+    logger.info(`[${requestId}] POST /auth/calendar/exchange`);
+
+    const result = await authService.exchangeCode(idToken, code, redirectUri);
+
+    return res.json({
+      success: true,
+      accessToken: result.accessToken,
+      timestamp: new Date().toISOString(),
+      requestId,
+    });
+  } catch (error) {
+    const isAuthError = error.message.includes('inválido') || error.message.includes('expirado');
+
+    logger.error(`[${requestId}] Error in POST /auth/calendar/exchange`, {
+      error: error.message,
+    });
+
+    return res.status(isAuthError ? 401 : 500).json({
+      success: false,
+      error: isAuthError ? 'Token de autenticación inválido.' : 'Error al procesar la solicitud.',
+      message: error.message,
+      requestId,
+    });
+  }
 });
 
 /**
@@ -67,55 +67,54 @@ router.post('/calendar/exchange', async (req, res) => {
  * Response 500: error de Google
  */
 router.get('/calendar/refresh', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    try {
-        const authHeader = req.headers.authorization;
+  try {
+    const authHeader = req.headers.authorization;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                error: 'Header Authorization requerido. Formato: Bearer <idToken>',
-                requestId,
-            });
-        }
-
-        const idToken = authHeader.split('Bearer ')[1];
-
-        logger.info(`[${requestId}] GET /auth/calendar/refresh`);
-
-        const result = await authService.getAccessToken(idToken);
-
-        return res.json({
-            success: true,
-            accessToken: result.accessToken,
-            timestamp: new Date().toISOString(),
-            requestId,
-        });
-
-    } catch (error) {
-        const isAuthError = error.message.includes('inválido') || error.message.includes('expirado');
-        const isNotFound = error.message === 'NOT_FOUND';
-
-        logger.error(`[${requestId}] Error in GET /auth/calendar/refresh`, {
-            error: error.message,
-        });
-
-        if (isNotFound) {
-            return res.status(404).json({
-                success: false,
-                error: 'No hay refresh token almacenado para este usuario. Debe autenticarse primero.',
-                requestId,
-            });
-        }
-
-        return res.status(isAuthError ? 401 : 500).json({
-            success: false,
-            error: isAuthError ? 'Token de autenticación inválido.' : 'Error al renovar el token.',
-            message: error.message,
-            requestId,
-        });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        error: 'Header Authorization requerido. Formato: Bearer <idToken>',
+        requestId,
+      });
     }
+
+    const idToken = authHeader.split('Bearer ')[1];
+
+    logger.info(`[${requestId}] GET /auth/calendar/refresh`);
+
+    const result = await authService.getAccessToken(idToken);
+
+    return res.json({
+      success: true,
+      accessToken: result.accessToken,
+      timestamp: new Date().toISOString(),
+      requestId,
+    });
+  } catch (error) {
+    const isAuthError = error.message.includes('inválido') || error.message.includes('expirado');
+    const isNotFound = error.message === 'NOT_FOUND';
+
+    logger.error(`[${requestId}] Error in GET /auth/calendar/refresh`, {
+      error: error.message,
+    });
+
+    if (isNotFound) {
+      return res.status(404).json({
+        success: false,
+        error: 'No hay refresh token almacenado para este usuario. Debe autenticarse primero.',
+        requestId,
+      });
+    }
+
+    return res.status(isAuthError ? 401 : 500).json({
+      success: false,
+      error: isAuthError ? 'Token de autenticación inválido.' : 'Error al renovar el token.',
+      message: error.message,
+      requestId,
+    });
+  }
 });
 
 /**
@@ -130,22 +129,22 @@ router.get('/calendar/refresh', async (req, res) => {
  * Response 500: error de Google
  */
 router.get('/calendar/token', async (req, res) => {
-    const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader?.startsWith('Bearer ')) {
-            return res.status(401).json({ success: false, error: 'Authorization header requerido.' });
-        }
-        const idToken = authHeader.split('Bearer ')[1];
-        const result  = await authService.getAccessToken(idToken);
-        return res.json({ success: true, accessToken: result.accessToken, requestId });
-    } catch (error) {
-        if (error.message === 'NOT_FOUND') {
-            return res.status(404).json({ success: false, error: 'Sin refresh token almacenado.', requestId });
-        }
-        const isAuth = error.message.includes('inválido') || error.message.includes('expirado');
-        return res.status(isAuth ? 401 : 500).json({ success: false, error: error.message, requestId });
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, error: 'Authorization header requerido.' });
     }
+    const idToken = authHeader.split('Bearer ')[1];
+    const result = await authService.getAccessToken(idToken);
+    return res.json({ success: true, accessToken: result.accessToken, requestId });
+  } catch (error) {
+    if (error.message === 'NOT_FOUND') {
+      return res.status(404).json({ success: false, error: 'Sin refresh token almacenado.', requestId });
+    }
+    const isAuth = error.message.includes('inválido') || error.message.includes('expirado');
+    return res.status(isAuth ? 401 : 500).json({ success: false, error: error.message, requestId });
+  }
 });
 
 module.exports = router;

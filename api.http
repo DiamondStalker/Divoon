@@ -1,1 +1,5 @@
 GET http://localhost:5000/valorant/rank
+
+
+GET http://localhost:5000
+
